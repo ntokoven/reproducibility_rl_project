@@ -1,22 +1,56 @@
-# Authors Peter Henderson, Riashat Islam, Philip Bachman, Joelle Pineau, Doina Precup, David Meger
-# Copied from https://github.com/Breakend/DeepReinforcementLearningThatMatters
-
-
 import matplotlib.pyplot as plt
+import pickle
 from scipy.ndimage.filters import uniform_filter1d
 import time
 import numpy as np
 import pandas as pd
 from itertools import cycle
 import argparse
+import os
 
 from numpy import genfromtxt
 from numpy.random import choice
 
-# Make fonts pretty
-plt.rcParams['text.usetex'] = True
+from datetime import datetime
+
+def plot_time(run_times, labels):
+    plt.bar(labels, run_times, width=0.2)
+    
+    plt.title('Training time')
+    plt.ylabel('Duration (in sec)')
+    plt.grid(axis='y')
+    
+    plt.show()
+
+def plot_trials(model_score_map, score_type):
+    plt.boxplot(model_score_map.values(), labels=model_score_map.keys())
+    
+    plt.grid(axis='y')
+    plt.title(f'Statistics on {score_type} average return throught {len(list(model_score_map.values())[0])} trials')
+    plt.ylabel('Avg return')
+    plt.show()
+
+def plot_robustness(label_list, average_vals_list, times_list):
+    # std-devs for a fully trained model
+    for label, avg_vals, time in zip(label_list, average_vals_list, times_list):
+        plt.boxplot(avg_vals[time:], labels=[label])
+    plt.grid(axis='y')
+    plt.title('robustness')
+    plt.ylabel('Avg return')
+    plt.show()
+
+def calc_run_time(data):
+    time_pos = np.argmax(data['avg_ret']) # first occurence of max value
+
+    start = datetime.fromtimestamp(data['time_start'])
+    end = datetime.fromtimestamp(data['timestamps'][time_pos])
+
+    return (end-start).total_seconds()
 
 def multiple_plot(average_vals_list, std_dev_list, traj_list, other_labels, env_name, smoothing_window=5, no_show=False, ignore_std=False, climit=None, extra_lines=None):
+# Authors Peter Henderson, Riashat Islam, Philip Bachman, Joelle Pineau, Doina Precup, David Meger
+# Copied from https://github.com/Breakend/DeepReinforcementLearningThatMatters
+
     fig = plt.figure(figsize=(16, 8))
     colors = ["#1f77b4", "#ff7f0e", "#d62728", "#9467bd", "#2ca02c", "#8c564b", "#e377c2", "#bcbd22", "#17becf"]
     linestyles = ['solid', 'dashed', 'dashdot', 'dotted']
@@ -86,35 +120,48 @@ def multiple_plot(average_vals_list, std_dev_list, traj_list, other_labels, env_
 
     return fig
 
-parser = argparse.ArgumentParser()
-parser.add_argument("paths_to_progress_csvs", nargs="+", help="All the csvs associated with the data (Need AverageReturn, StdReturn, and TimestepsSoFar columns)")
-parser.add_argument("env_name", help= "This is just the title of the plot and the filename." )
-parser.add_argument("--save", action="store_true")
-parser.add_argument("--ignore_std", action="store_true")
-parser.add_argument('--labels', nargs='+', help='List of labels to go along with the lines to plot', required=False)
-parser.add_argument('--smoothing_window', default=1, type=int, help="Running average to smooth with, default is 1 (i.e. no smoothing)")
-parser.add_argument('--limit', default=None, type=int)
-parser.add_argument('--extra_lines', nargs="+", type=float, help="Any extra lines to add on the graph (such as other paper resulls)")
+def parse():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("paths_to_progress_pickles", type=str, help="All the pickles associated with the data")
+    parser.add_argument("env_name", help= "This is just the title of the plot and the filename.")
+    parser.add_argument("--save", action="store_true")
+    parser.add_argument("--ignore_std", action="store_true")
+    parser.add_argument('--smoothing_window', default=1, type=int, help="Running average to smooth with, default is 1 (i.e. no smoothing)")
+    parser.add_argument('--limit', default=None, type=int)
+ 
+    return parser.parse_args()
 
-args = parser.parse_args()
+if __name__ == "__main__":
+    args = parse()
+   
+    avg_rets = []
+    std_dev_rets = []
+    labels = []
+    run_times = []
+    trajs = None
 
-avg_rets = []
-std_dev_rets = []
-trajs = []
+    # Read all pickle's into arrays
+    for name in os.listdir(args.paths_to_progress_pickles):
+        path = os.path.join(args.paths_to_progress_pickles, name)
+        if not os.path.isfile(path):
+            continue
 
-# Read all csv's into arrays
-for o in args.paths_to_progress_csvs:
-    data = pd.read_csv(o)
-    avg_ret = np.array(data["AverageReturn"]) # averge return across trials
-    std_dev_ret = np.array(data["StdReturn"]) # standard error across trials
-    if "total/steps" in data and trajs is not None:
-        trajs.append(np.array(data["total/steps"]))
-    elif "TimestepsSoFar" in data and trajs is not None:
-        trajs.append(np.array(data["TimestepsSoFar"]))
-    else:
-        trajs = None
-    avg_rets.append(avg_ret)
-    std_dev_rets.append(std_dev_ret)
+        data = pickle.load(open(path, "rb"))
+        print(data['avg_ret'])
 
-# call plotting script
-multiple_plot(avg_rets, std_dev_rets, trajs, args.labels, args.env_name, smoothing_window=args.smoothing_window, no_show=args.save, ignore_std=args.ignore_std, climit=args.limit, extra_lines=args.extra_lines)
+        avg_ret = np.array(data["avg_ret"]) # averge return across trials
+        std_dev_ret = np.array(data["std_dev"]) # standard error across trials
+
+        labels.append(data['name'])
+        avg_rets.append(avg_ret)
+        std_dev_rets.append(std_dev_ret)
+        run_times.append(calc_run_time(data))
+
+    multiple_plot(avg_rets, std_dev_rets, trajs, labels, args.env_name, smoothing_window=args.smoothing_window, no_show=args.save, ignore_std=args.ignore_std, climit=args.limit)
+    # plot_robustness(labels, std_dev_rets, times)
+    plot_time(run_times, labels)
+
+
+
+    # plot robust
+    # plot trials, more from same kind
