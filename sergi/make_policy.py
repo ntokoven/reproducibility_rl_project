@@ -1,6 +1,4 @@
 import numpy as np
-from torch import nn
-import torch.nn.functional as F
 
 def make_epsilon_greedy_policy(Q, epsilon, nA):
     """
