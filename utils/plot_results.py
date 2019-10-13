@@ -13,31 +13,67 @@ from numpy.random import choice
 
 from datetime import datetime
 
-def plot_time(run_times, labels):
+def plot_time(run_times, labels, env_name, no_show=False):
+    fig = plt.figure(figsize=(16, 8))
     plt.bar(labels, run_times, width=0.2)
     
     plt.title('Training time')
     plt.ylabel('Duration (in sec)')
     plt.grid(axis='y')
-    
-    plt.show()
 
-def plot_trials(model_score_map, score_type):
+    if no_show:
+        fig.savefig('time_%s.pdf' % env_name, dpi=fig.dpi, bbox_inches='tight')
+    else:
+        plt.show()
+
+def plot_trials(model_score_map, score_type, env_name, no_show=False):
+    fig = plt.figure(figsize=(16, 8))
     plt.boxplot(model_score_map.values(), labels=model_score_map.keys())
     
     plt.grid(axis='y')
     plt.title(f'Statistics on {score_type} average return throught {len(list(model_score_map.values())[0])} trials')
     plt.ylabel('Avg return')
-    plt.show()
 
-def plot_robustness(label_list, average_vals_list, times_list):
+    if no_show:
+        fig.savefig('compare_seeds_%s.pdf' % env_name, dpi=fig.dpi, bbox_inches='tight')
+    else:
+        plt.show()
+
+def plot_robustness(label_list, average_vals_list, times_list, env_name, no_show=False):
+    fig = plt.figure(figsize=(16, 8))
     # std-devs for a fully trained model
     for label, avg_vals, time in zip(label_list, average_vals_list, times_list):
         plt.boxplot(avg_vals[time:], labels=[label])
     plt.grid(axis='y')
     plt.title('robustness')
     plt.ylabel('Avg return')
-    plt.show()
+
+    if no_show:
+        fig.savefig('robustness_%s.pdf' % env_name, dpi=fig.dpi, bbox_inches='tight')
+    else:
+        plt.show()
+
+def plot_return(max_return_list, mean_return_list, label, env_name, no_show=False):
+    x = np.arange(len(label)*2)
+    width = 0.35  # the width of the bars
+    
+    fig, ax = plt.subplots()
+    ax.bar(x - width/2, max_return_list, width=width, label='Max avg_return')
+    ax.bar(x + width/2, mean_return_list, width=width, label='Mean avg_return')
+
+    ax.set_ylabel('Avg return')
+    ax.set_title('Scores by algorithm')
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.legend()
+    ax.grid(axis='y')
+
+    fig.tight_layout()
+    if no_show:
+        fig.savefig('returns_%s.pdf' % env_name, dpi=fig.dpi, bbox_inches='tight')
+    else:
+        plt.show()
+
 
 def calc_run_time(data):
     time_pos = np.argmax(data['avg_ret']) # first occurence of max value
@@ -138,6 +174,9 @@ if __name__ == "__main__":
     std_dev_rets = []
     labels = []
     run_times = []
+    max_returns = []
+    mean_returns = []
+    seeds = []
     trajs = None
 
     # Read all pickle's into arrays
@@ -145,23 +184,27 @@ if __name__ == "__main__":
         path = os.path.join(args.paths_to_progress_pickles, name)
         if not os.path.isfile(path):
             continue
-
+        
         data = pickle.load(open(path, "rb"))
-        print(data['avg_ret'])
 
         avg_ret = np.array(data["avg_ret"]) # averge return across trials
         std_dev_ret = np.array(data["std_dev"]) # standard error across trials
 
-        labels.append(data['name'])
+        labels.append(data['name'] + ' ' + str(data['seed']))
         avg_rets.append(avg_ret)
         std_dev_rets.append(std_dev_ret)
         run_times.append(calc_run_time(data))
+        max_returns.append(np.max(data['avg_ret']))
+        mean_returns.append(np.average(data['avg_ret']))
+        #seeds.append(data['seed'])
+
 
     multiple_plot(avg_rets, std_dev_rets, trajs, labels, args.env_name, smoothing_window=args.smoothing_window, no_show=args.save, ignore_std=args.ignore_std, climit=args.limit)
-    # plot_robustness(labels, std_dev_rets, times)
-    plot_time(run_times, labels)
+    plot_time(run_times, labels, args.env_name, no_show=args.save)
+    #plot_returns(max_returns, mean_returns, labels)
 
 
 
     # plot robust
     # plot trials, more from same kind
+    #plot_return([10,40],[7,24],['A','B'])
