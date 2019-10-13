@@ -1,8 +1,5 @@
 import torch
-from torch import nn
-import torch.nn.functional as F
 from torch import optim
-from tqdm import tqdm as _tqdm
 
 def select_action(model, state):
     # Samples an action according to the probability distribution induced by the model
