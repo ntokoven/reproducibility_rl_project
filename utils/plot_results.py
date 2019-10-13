@@ -17,7 +17,7 @@ def plot_time(run_times, labels, env_name, no_show=False):
     fig = plt.figure(figsize=(16, 8))
     plt.bar(labels, run_times, width=0.2)
     
-    plt.title('Training time')
+    plt.title(f'Training time in {env_name}')
     plt.ylabel('Duration (in sec)')
     plt.grid(axis='y')
 
@@ -53,16 +53,17 @@ def plot_robustness(label_list, average_vals_list, times_list, env_name, no_show
     else:
         plt.show()
 
-def plot_return(max_return_list, mean_return_list, label, env_name, no_show=False):
-    x = np.arange(len(label)*2)
+def plot_returns(max_return_list, mean_return_list, label, env_name, no_show=False):
+    x = np.arange(len(label))
     width = 0.35  # the width of the bars
     
     fig, ax = plt.subplots()
+
     ax.bar(x - width/2, max_return_list, width=width, label='Max avg_return')
     ax.bar(x + width/2, mean_return_list, width=width, label='Mean avg_return')
 
     ax.set_ylabel('Avg return')
-    ax.set_title('Scores by algorithm')
+    ax.set_title(f'{env_name} scores')
     ax.set_xticks(x)
     ax.set_xticklabels(labels)
     ax.legend()
@@ -74,7 +75,6 @@ def plot_return(max_return_list, mean_return_list, label, env_name, no_show=Fals
     else:
         plt.show()
 
-
 def calc_run_time(data):
     time_pos = np.argmax(data['avg_ret']) # first occurence of max value
 
@@ -84,9 +84,10 @@ def calc_run_time(data):
     return (end-start).total_seconds()
 
 def multiple_plot(average_vals_list, std_dev_list, traj_list, other_labels, env_name, smoothing_window=5, no_show=False, ignore_std=False, climit=None, extra_lines=None):
-# Authors Peter Henderson, Riashat Islam, Philip Bachman, Joelle Pineau, Doina Precup, David Meger
-# Copied from https://github.com/Breakend/DeepReinforcementLearningThatMatters
-
+    '''
+        Authors Peter Henderson, Riashat Islam, Philip Bachman, Joelle Pineau, Doina Precup, David Meger
+        Copied from https://github.com/Breakend/DeepReinforcementLearningThatMatters
+    '''
     fig = plt.figure(figsize=(16, 8))
     colors = ["#1f77b4", "#ff7f0e", "#d62728", "#9467bd", "#2ca02c", "#8c564b", "#e377c2", "#bcbd22", "#17becf"]
     linestyles = ['solid', 'dashed', 'dashdot', 'dotted']
@@ -95,9 +96,9 @@ def multiple_plot(average_vals_list, std_dev_list, traj_list, other_labels, env_
     offset = 1
 
     # Set the tick labels font
-    for label in (ax.get_xticklabels() + ax.get_yticklabels()):
-        label.set_fontname('Arial')
-        label.set_fontsize(28)
+    # for label in (ax.get_xticklabels() + ax.get_yticklabels()):
+    #     label.set_fontname('Arial')
+    #     label.set_fontsize(28)
     if traj_list is None:
         traj_list = [None]*len(average_vals_list)
     limit = climit
@@ -137,12 +138,12 @@ def multiple_plot(average_vals_list, std_dev_list, traj_list, other_labels, env_
             color_index += 1
             index += 1
 
-    axis_font = {'fontname':'Arial', 'size':'32'}
-    plt.legend(loc='lower right', prop={'size' : 16})
+    axis_font = {'fontname':'Arial', 'size':'20'}
+    plt.legend(loc='lower right', prop={'size' : 8})
     plt.xlabel("Iterations", **axis_font)
     if traj_list is not None and traj_list[0] is not None:
         plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
-        ax.xaxis.get_offset_text().set_fontsize(20)
+        ax.xaxis.get_offset_text().set_fontsize(16)
         plt.xlabel("Timesteps", **axis_font)
     else:
         plt.xlabel("Iterations", **axis_font)
@@ -201,10 +202,4 @@ if __name__ == "__main__":
 
     multiple_plot(avg_rets, std_dev_rets, trajs, labels, args.env_name, smoothing_window=args.smoothing_window, no_show=args.save, ignore_std=args.ignore_std, climit=args.limit)
     plot_time(run_times, labels, args.env_name, no_show=args.save)
-    #plot_returns(max_returns, mean_returns, labels)
-
-
-
-    # plot robust
-    # plot trials, more from same kind
-    #plot_return([10,40],[7,24],['A','B'])
+    plot_returns(max_returns, mean_returns, labels, args.env_name, no_show=args.save)
