@@ -1,0 +1,14 @@
+Overall, due to the high variance across
+trials and random seeds of reinforcement learning algorithms,
+many trials must be run with different random seeds when
+comparing performance.Unless random seed selection is
+explicitly part of the algorithm, averaging multiple runs over
+different random seeds gives insight into the population distribution of the algorithm performance on an environment.
+Similarly, due to these effects, it is important to perform
+proper significance testing to determine if the higher average
+returns are in fact representative of better performance
+
+time = barplot for time (lower better) within fixed training steps
+sample = see when does it converge / reaches max value, faster the better -> less runs, less samples are needed
+highest, avg score = give plot and then table of results
+robustness = variance in score around highest score for fully trained
