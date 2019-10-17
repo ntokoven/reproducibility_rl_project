@@ -13,7 +13,34 @@ from numpy.random import choice
 
 from datetime import datetime
 
+def calc_run_time(data):
+    '''
+    Calculates the ellapsed time between starting the algorithm and first reaching the max-vlaue
+    ARGUMENTS:
+        - data:             dictionary of the running history
+    OUTPUT:
+        - total_seconds:    float
+    '''
+
+    time_pos = np.argmax(data['avg_ret']) # first occurence of max value
+    print(time_pos)
+    print(len(data['timestamps']))
+    start = datetime.fromtimestamp(data['time_start'])
+    end = datetime.fromtimestamp(data['timestamps'][time_pos])
+
+    return (end-start).total_seconds()
+
 def plot_time(run_times, labels, env_name, no_show=False):
+    '''
+    Plots the total ellapsed time for multiple runs as barchart
+    ARGUMENTS:
+        - run_times:    list of float, containing total ellapsed time
+        - labels:       list of string, algorithm names used as label on the chart
+        - env_name:     string, title of the diagram
+        - no_show:      boolaen, save figure instead of showing it, default: FALSE
+    OUTPUT:
+        - None
+    '''
     fig = plt.figure(figsize=(16, 8))
     plt.bar(labels, run_times, width=0.2)
     
@@ -26,35 +53,43 @@ def plot_time(run_times, labels, env_name, no_show=False):
     else:
         plt.show()
 
-def plot_trials(model_score_map, score_type, env_name, no_show=False):
-    fig = plt.figure(figsize=(16, 8))
-    plt.boxplot(model_score_map.values(), labels=model_score_map.keys())
-    
-    plt.grid(axis='y')
-    plt.title(f'Statistics on {score_type} average return throught {len(list(model_score_map.values())[0])} trials')
-    plt.ylabel('Avg return')
+def plot_robustness(std_dev_list, label_list, env_name, no_show=False):
+    '''
+    Plotting standard deviation of running histories of trained agents
+    DO NOT USE IT WITH REGULAR TRAINING HISTORY
 
-    if no_show:
-        fig.savefig('compare_seeds_%s.pdf' % env_name, dpi=fig.dpi, bbox_inches='tight')
-    else:
-        plt.show()
-
-def plot_robustness(label_list, average_vals_list, times_list, env_name, no_show=False):
+    ARGUMENTS:
+        - std_dev_list:
+        - label_list:
+        - 
+    '''
     fig = plt.figure(figsize=(16, 8))
     # std-devs for a fully trained model
-    for label, avg_vals, time in zip(label_list, average_vals_list, times_list):
-        plt.boxplot(avg_vals[time:], labels=[label])
+    #for label, std_dev in zip(label_list, std_dev_list):
+    plt.boxplot(std_dev_list, labels=label_list)
+    
     plt.grid(axis='y')
-    plt.title('robustness')
-    plt.ylabel('Avg return')
+    plt.title('Robustness')
+    plt.ylabel('Standard deviation')
 
     if no_show:
         fig.savefig('robustness_%s.pdf' % env_name, dpi=fig.dpi, bbox_inches='tight')
     else:
         plt.show()
 
-def plot_returns(max_return_list, mean_return_list, label, env_name, no_show=False):
-    x = np.arange(len(label))
+def plot_returns(max_return_list, mean_return_list, labels, env_name, no_show=False):
+    '''
+    Plotting the max and mean average_return of the models.
+    ARGUMENTS:
+        - max_return_list:      list of floats, max return value
+        - mean_return_list:     list of floats, mean return value
+        - labels:               list of string, algorithm names used as label on the chart
+        - env_name:             string, title of the diagram
+        - no_show:              boolaen, save figure instead of showing it, default: FALSE
+    OUTPUT:
+        - None
+    '''
+    x = np.arange(len(labels))
     width = 0.35  # the width of the bars
     
     fig, ax = plt.subplots()
@@ -75,18 +110,24 @@ def plot_returns(max_return_list, mean_return_list, label, env_name, no_show=Fal
     else:
         plt.show()
 
-def calc_run_time(data):
-    time_pos = np.argmax(data['avg_ret']) # first occurence of max value
-
-    start = datetime.fromtimestamp(data['time_start'])
-    end = datetime.fromtimestamp(data['timestamps'][time_pos])
-
-    return (end-start).total_seconds()
-
 def multiple_plot(average_vals_list, std_dev_list, traj_list, other_labels, env_name, smoothing_window=5, no_show=False, ignore_std=False, climit=None, extra_lines=None):
     '''
-        Authors Peter Henderson, Riashat Islam, Philip Bachman, Joelle Pineau, Doina Precup, David Meger
-        Copied from https://github.com/Breakend/DeepReinforcementLearningThatMatters
+    Plotting multiple history of running of algorithms.
+    ARGUMENTS:
+        - average_vals_list:    list of lists of floats, running histories of different algorithms at each evaluation
+        - std_dev_list:         list of lists of floats, standard deviations of different algorithms at each evaluation
+        - traj_list:            list of lists of integers, evaluation steps, if None: 1 to end will be used for x axis
+        - other_labels:         list of string, algorithm names used as label on the chart
+        - env_name:             string, title of the diagram
+        - smooting_window:      integer, size of the window for smoothing the runnin_histories, default: 5
+        - no_show:              boolaen, save figure instead of showing it, default: FALSE
+        - ignore_std:           boolean, wheater to show standard deviations, default: FALSE
+        - climit:               integer, option to limit the history, defualt: None
+        - extra_lines:          list of lists of floats, inlcude other running histories as baselines
+
+    Based on:
+    Authors Peter Henderson, Riashat Islam, Philip Bachman, Joelle Pineau, Doina Precup, David Meger
+    Copied from https://github.com/Breakend/DeepReinforcementLearningThatMatters
     '''
     fig = plt.figure(figsize=(16, 8))
     colors = ["#1f77b4", "#ff7f0e", "#d62728", "#9467bd", "#2ca02c", "#8c564b", "#e377c2", "#bcbd22", "#17becf"]
@@ -159,8 +200,8 @@ def multiple_plot(average_vals_list, std_dev_list, traj_list, other_labels, env_
 
 def parse():
     parser = argparse.ArgumentParser()
-    parser.add_argument("paths_to_progress_pickles", type=str, help="All the pickles associated with the data")
-    parser.add_argument("env_name", help= "This is just the title of the plot and the filename.")
+    parser.add_argument("--paths_to_progress_pickles", type=str, help="All the pickles associated with the data")
+    parser.add_argument("--env_name", help= "This is just the title of the plot and the filename.")
     parser.add_argument("--save", action="store_true")
     parser.add_argument("--ignore_std", action="store_true")
     parser.add_argument('--smoothing_window', default=1, type=int, help="Running average to smooth with, default is 1 (i.e. no smoothing)")
@@ -201,5 +242,7 @@ if __name__ == "__main__":
 
 
     multiple_plot(avg_rets, std_dev_rets, trajs, labels, args.env_name, smoothing_window=args.smoothing_window, no_show=args.save, ignore_std=args.ignore_std, climit=args.limit)
-    plot_time(run_times, labels, args.env_name, no_show=args.save)
-    plot_returns(max_returns, mean_returns, labels, args.env_name, no_show=args.save)
+    # plot_time(run_times, labels, args.env_name, no_show=args.save)
+    # plot_returns(max_returns, mean_returns, labels, args.env_name, no_show=args.save)
+    # plot_robustness(std_dev_rets, labels, env_name=args.env_name, no_show=args.save)P
+    
