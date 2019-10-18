@@ -1,3 +1,6 @@
 *.png
 *.ipynb_checkpoints
 .vscode
+*.pickle
+*pyc
+for_ati/.ipynb_checkpoints
